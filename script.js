@@ -150,7 +150,7 @@ async function saveUnansweredQuestion(question) {
   if (!payload.question) {
     return {
       success: false,
-      message: "Câu hỏi đang trống"
+      message: "Câu hỏi đang trống."
     };
   }
 
@@ -166,29 +166,25 @@ async function saveUnansweredQuestion(question) {
   }
 
   try {
-    const body = new Blob(
-      [JSON.stringify(payload)],
-      {
-        type: "text/plain;charset=UTF-8"
-      }
-    );
+    console.log("Đang gửi payload:", payload);
 
-    const sent = navigator.sendBeacon(
-      CONFIG.googleAppsScriptUrl,
-      body
-    );
+    await fetch(CONFIG.googleAppsScriptUrl, {
+      method: "POST",
+      mode: "no-cors",
+      redirect: "follow",
+      headers: {
+        "Content-Type": "text/plain;charset=UTF-8"
+      },
+      body: JSON.stringify(payload)
+    });
 
-    console.log("Kết quả gửi Beacon:", sent, payload);
-
-    if (!sent) {
-      throw new Error("Trình duyệt không gửi được yêu cầu");
-    }
+    console.log("Đã gửi POST đến Apps Script.");
 
     return {
       success: true
     };
   } catch (error) {
-    console.error("Không thể ghi nhận câu hỏi:", error);
+    console.error("Không thể gửi câu hỏi:", error);
 
     saveQuestionLocally(payload);
 
