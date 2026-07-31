@@ -19,13 +19,7 @@ export default async function handler(request, response) {
     }
 
     const appsScriptUrl =
-      process.env.GOOGLE_APPS_SCRIPT_URL;
-
-    if (!appsScriptUrl) {
-      throw new Error(
-        "Chưa cấu hình GOOGLE_APPS_SCRIPT_URL trên Vercel."
-      );
-    }
+  "https://script.google.com/macros/s/AKfycbz3UPWdeYXjLZ0mkMbZNHDwPfNonsDmvXqPaM6vEhqUJCfMignD0pXjTt71qWyZtHUy/exec";
 
     const appsScriptResponse = await fetch(
       appsScriptUrl,
