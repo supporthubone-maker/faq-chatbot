@@ -1,6 +1,6 @@
 const CONFIG = {
+  botname: "HuBI"
   // Dán URL Web App của Google Apps Script tại đây khi đã có.
-  // Ví dụ: "https://script.google.com/macros/s/XXXXX/exec"
   googleAppsScriptUrl: "",
   minMatchScore: 0.34
 };
@@ -115,7 +115,7 @@ async function handleQuestion(rawQuestion) {
     addMessage(result.faq.answer, "bot");
   } else {
     addMessage(
-      "Hiện tại mình chưa tìm thấy câu trả lời phù hợp. Câu hỏi của bạn đã được ghi nhận để bộ phận phụ trách bổ sung dữ liệu FAQ.",
+      "${CONFIG.botName} chưa tìm thấy câu trả lời phù hợp. Câu hỏi của bạn đã được ghi nhận để bộ phận phụ trách bổ sung dữ liệu FAQ.",
       "bot"
     );
     await saveUnansweredQuestion(question);
@@ -130,5 +130,5 @@ chatForm.addEventListener("submit", event => {
   handleQuestion(questionInput.value);
 });
 
-addMessage("Xin chào! Bạn cần hỗ trợ thông tin gì?", "bot");
+addMessage("Xin chào! Mình là ${CONFIG.botName}. Bạn cần hỗ trợ thông tin gì?", "bot");
 renderSuggestions();
