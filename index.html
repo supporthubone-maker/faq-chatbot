@@ -3,24 +3,28 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Chatbot FAQ hỗ trợ giải đáp câu hỏi thường gặp" />
-  <title>FAQ Assistant</title>
+  <meta name="description" content="HuBI - Trợ lý FAQ hỗ trợ giải đáp câu hỏi thường gặp" />
+  <meta name="theme-color" content="#1f6feb" />
+  <title>HuBI | Trợ lý hỗ trợ</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <main class="page-shell">
-    <section class="chat-card">
+    <section class="chat-card" aria-label="Khung trò chuyện với HuBI">
       <header class="chat-header">
-        <div class="bot-avatar">FAQ</div>
-        <div>
-          <h1>Trợ lý hỗ trợ</h1>
-          <p><span class="status-dot"></span> Sẵn sàng giải đáp</p>
+        <div class="bot-avatar" aria-hidden="true">
+          <span class="bot-face">◉‿◉</span>
+        </div>
+
+        <div class="bot-info">
+          <h1 id="botDisplayName">HuBI</h1>
+          <p><span class="status-dot"></span>Trợ lý hỗ trợ thông tin</p>
         </div>
       </header>
 
-      <div id="messages" class="messages" aria-live="polite"></div>
+      <div id="messages" class="messages" aria-live="polite" aria-label="Nội dung trò chuyện"></div>
 
-      <div id="suggestions" class="suggestions"></div>
+      <div id="suggestions" class="suggestions" aria-label="Câu hỏi gợi ý"></div>
 
       <form id="chatForm" class="chat-form">
         <label class="sr-only" for="questionInput">Nhập câu hỏi</label>
@@ -33,10 +37,12 @@
           placeholder="Nhập câu hỏi của bạn..."
           required
         />
-        <button type="submit">Gửi</button>
+        <button type="submit" aria-label="Gửi câu hỏi">Gửi</button>
       </form>
 
-      <p class="note">Câu hỏi chưa có đáp án có thể được ghi nhận để bổ sung dữ liệu FAQ.</p>
+      <p class="note">
+        Câu hỏi chưa có đáp án sẽ được HuBI ghi nhận để bổ sung dữ liệu FAQ.
+      </p>
     </section>
   </main>
 
