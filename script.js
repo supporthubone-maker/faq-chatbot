@@ -1,14 +1,7 @@
 console.log("HuBI version 2026-07-31-04");
 
 const CONFIG = {
-  botName: "HuBI",
-
-  // URL Web App của Google Apps Script, phải kết thúc bằng /exec
-  googleAppsScriptUrl:
-    "https://script.google.com/macros/s/AKfycbz3UPWdeYXjLZ0mkMbZNHDwPfNonsDmvXqPaM6vEhqUJCfMignD0pXjTt71qWyZtHUy/exec",
-
-  // Điểm khớp tối thiểu để HuBI trả lời từ dữ liệu FAQ
-  minMatchScore: 0.34
+  botName: "HuBI"
 };
 
 const messagesEl = document.getElementById("messages");
@@ -23,72 +16,13 @@ if (botDisplayName) {
 
 document.title = `${CONFIG.botName} | Trợ lý hỗ trợ`;
 
-function normalizeText(value) {
-  return String(value || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function tokenize(value) {
-  return new Set(
-    normalizeText(value)
-      .split(" ")
-      .filter(word => word.length > 1)
-  );
-}
-
-function calculateScore(question, faq) {
-  const normalizedQuestion = normalizeText(question);
-  const questionTokens = tokenize(question);
-  const searchableText = [faq.question, ...(faq.keywords || [])].join(" ");
-  const faqTokens = tokenize(searchableText);
-
-  let overlap = 0;
-
-  questionTokens.forEach(token => {
-    if (faqTokens.has(token)) {
-      overlap += 1;
-    }
-  });
-
-  const tokenScore =
-    overlap / Math.max(questionTokens.size, 1);
-
-  const phraseBonus = (faq.keywords || []).some(keyword =>
-    normalizedQuestion.includes(normalizeText(keyword))
-  )
-    ? 0.55
-    : 0;
-
-  return Math.min(tokenScore + phraseBonus, 1);
-}
-
-function findBestAnswer(question) {
-  const faqData = Array.isArray(window.FAQ_DATA)
-    ? window.FAQ_DATA
-    : [];
-
-  const ranked = faqData
-    .map(faq => ({
-      faq,
-      score: calculateScore(question, faq)
-    }))
-    .sort((a, b) => b.score - a.score);
-
-  return ranked[0] || null;
-}
-
 function addMessage(text, sender = "bot") {
   const row = document.createElement("div");
   row.className = `message-row ${sender}`;
 
   const bubble = document.createElement("div");
   bubble.className = `message ${sender}`;
-  bubble.textContent = text;
+  bubble.textContent = String(text || "");
 
   row.appendChild(bubble);
   messagesEl.appendChild(row);
@@ -96,6 +30,8 @@ function addMessage(text, sender = "bot") {
 }
 
 function renderSuggestions() {
+  if (!suggestionsEl) return;
+
   suggestionsEl.innerHTML = "";
 
   const faqData = Array.isArray(window.FAQ_DATA)
@@ -118,134 +54,83 @@ function renderSuggestions() {
   });
 }
 
-function saveQuestionLocally(payload) {
-  try {
-    const localQuestions = JSON.parse(
-      localStorage.getItem("unansweredQuestions") || "[]"
-    );
+async function searchFAQFromGoogleSheet(question) {
+  const response = await fetch("/api/search-faq", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      question
+    })
+  });
 
-    localQuestions.push(payload);
-
-    localStorage.setItem(
-      "unansweredQuestions",
-      JSON.stringify(localQuestions)
-    );
-  } catch (error) {
-    console.error(
-      "Không thể lưu câu hỏi trên trình duyệt:",
-      error
-    );
-  }
-}
-
-async function saveUnansweredQuestion(question) {
-  const payload = {
-    action: "saveUnansweredQuestion",
-    question: String(question || "").trim(),
-    botName: CONFIG.botName,
-    pageUrl: window.location.href,
-    createdAt: new Date().toISOString()
-  };
-
-  if (!payload.question) {
-    return {
-      success: false,
-      message: "Câu hỏi đang trống."
-    };
-  }
-
-  if (!CONFIG.googleAppsScriptUrl) {
-    console.warn("Chưa cấu hình Google Apps Script URL.");
-
-    saveQuestionLocally(payload);
-
-    return {
-      success: false,
-      savedLocally: true
-    };
-  }
+  let result;
 
   try {
-    console.log("Đang gửi payload:", payload);
-
-    await fetch(CONFIG.googleAppsScriptUrl, {
-      method: "POST",
-      mode: "no-cors",
-      redirect: "follow",
-      headers: {
-        "Content-Type": "text/plain;charset=UTF-8"
-      },
-      body: JSON.stringify(payload)
-    });
-
-    console.log("Đã gửi POST đến Apps Script.");
-
-    return {
-      success: true
-    };
+    result = await response.json();
   } catch (error) {
-    console.error("Không thể gửi câu hỏi:", error);
-
-    saveQuestionLocally(payload);
-
-    return {
-      success: false,
-      savedLocally: true,
-      message: error.message
-    };
+    throw new Error(
+      "API không trả về dữ liệu JSON hợp lệ."
+    );
   }
+
+  if (!response.ok) {
+    throw new Error(
+      result.message ||
+      "Không thể tìm dữ liệu FAQ."
+    );
+  }
+
+  return result;
 }
 
 async function handleQuestion(rawQuestion) {
   const question = String(rawQuestion || "").trim();
 
-  if (!question) {
-    return;
-  }
+  if (!question) return;
 
   addMessage(question, "user");
 
   questionInput.value = "";
   questionInput.disabled = true;
 
-  const result = findBestAnswer(question);
+  try {
+    const result =
+      await searchFAQFromGoogleSheet(question);
 
-  await new Promise(resolve => {
-    setTimeout(resolve, 300);
-  });
+    console.log("Kết quả từ Google Sheet:", result);
 
-  if (
-    result &&
-    result.score >= CONFIG.minMatchScore
-  ) {
-    addMessage(result.faq.answer, "bot");
-  } else {
-    const saveResult =
-      await saveUnansweredQuestion(question);
-
-    if (saveResult.success) {
+    if (
+      result.success &&
+      result.found &&
+      result.answer
+    ) {
+      addMessage(result.answer, "bot");
+    } else {
       addMessage(
+        result.message ||
         `${CONFIG.botName} chưa tìm thấy câu trả lời phù hợp. Câu hỏi của bạn đã được ghi nhận để bộ phận phụ trách bổ sung dữ liệu FAQ.`,
         "bot"
       );
-    } else if (saveResult.savedLocally) {
-      addMessage(
-        `${CONFIG.botName} chưa tìm thấy câu trả lời phù hợp. Câu hỏi đang được lưu tạm trên trình duyệt và sẽ cần được gửi lại khi kết nối hoạt động.`,
-        "bot"
-      );
-    } else {
-      addMessage(
-        `${CONFIG.botName} chưa tìm thấy câu trả lời phù hợp và hiện chưa thể ghi nhận câu hỏi. Bạn vui lòng thử lại sau.`,
-        "bot"
-      );
     }
-  }
+  } catch (error) {
+    console.error(
+      "Không thể tra cứu FAQ:",
+      error
+    );
 
-  questionInput.disabled = false;
-  questionInput.focus();
+    addMessage(
+      `${CONFIG.botName} đang gặp lỗi kết nối dữ liệu. Bạn vui lòng thử lại sau.`,
+      "bot"
+    );
+  } finally {
+    questionInput.disabled = false;
+    questionInput.focus();
+  }
 }
 
-if (chatForm) {
+if (chatForm && questionInput) {
   chatForm.addEventListener("submit", event => {
     event.preventDefault();
     handleQuestion(questionInput.value);
