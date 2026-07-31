@@ -3,7 +3,7 @@ const CONFIG = {
 
   // Dán URL Web App của Google Apps Script vào giữa hai dấu ngoặc kép khi đã có.
   // Ví dụ: "https://script.google.com/macros/s/XXXXX/exec"
-  googleAppsScriptUrl: "",
+  googleAppsScriptUrl: "https://script.google.com/macros/s/AKfycbz3UPWdeYXjLZ0mkMbZNHDwPfNonsDmvXqPaM6vEhqUJCfMignD0pXjTt71qWyZtHUy/exec",
 
   // Điểm khớp tối thiểu để HuBI trả lời từ dữ liệu FAQ.
   minMatchScore: 0.34
