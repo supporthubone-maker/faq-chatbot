@@ -1,7 +1,11 @@
 const CONFIG = {
-  botname: "HuBI"
-  // Dán URL Web App của Google Apps Script tại đây khi đã có.
+  botName: "HuBI",
+
+  // Dán URL Web App của Google Apps Script vào giữa hai dấu ngoặc kép khi đã có.
+  // Ví dụ: "https://script.google.com/macros/s/XXXXX/exec"
   googleAppsScriptUrl: "",
+
+  // Điểm khớp tối thiểu để HuBI trả lời từ dữ liệu FAQ.
   minMatchScore: 0.34
 };
 
@@ -9,6 +13,13 @@ const messagesEl = document.getElementById("messages");
 const suggestionsEl = document.getElementById("suggestions");
 const chatForm = document.getElementById("chatForm");
 const questionInput = document.getElementById("questionInput");
+const botDisplayName = document.getElementById("botDisplayName");
+
+if (botDisplayName) {
+  botDisplayName.textContent = CONFIG.botName;
+}
+
+document.title = `${CONFIG.botName} | Trợ lý hỗ trợ`;
 
 function normalizeText(value) {
   return String(value || "")
@@ -21,7 +32,11 @@ function normalizeText(value) {
 }
 
 function tokenize(value) {
-  return new Set(normalizeText(value).split(" ").filter(word => word.length > 1));
+  return new Set(
+    normalizeText(value)
+      .split(" ")
+      .filter(word => word.length > 1)
+  );
 }
 
 function calculateScore(question, faq) {
@@ -38,13 +53,17 @@ function calculateScore(question, faq) {
   const tokenScore = overlap / Math.max(questionTokens.size, 1);
   const phraseBonus = (faq.keywords || []).some(keyword =>
     normalizedQuestion.includes(normalizeText(keyword))
-  ) ? 0.55 : 0;
+  )
+    ? 0.55
+    : 0;
 
   return Math.min(tokenScore + phraseBonus, 1);
 }
 
 function findBestAnswer(question) {
-  const ranked = window.FAQ_DATA
+  const faqData = Array.isArray(window.FAQ_DATA) ? window.FAQ_DATA : [];
+
+  const ranked = faqData
     .map(faq => ({ faq, score: calculateScore(question, faq) }))
     .sort((a, b) => b.score - a.score);
 
@@ -66,21 +85,39 @@ function addMessage(text, sender = "bot") {
 
 function renderSuggestions() {
   suggestionsEl.innerHTML = "";
-  window.FAQ_DATA.slice(0, 4).forEach(faq => {
+
+  const faqData = Array.isArray(window.FAQ_DATA) ? window.FAQ_DATA : [];
+
+  faqData.slice(0, 4).forEach(faq => {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "suggestion-chip";
     button.textContent = faq.question;
+    button.title = faq.question;
     button.addEventListener("click", () => handleQuestion(faq.question));
     suggestionsEl.appendChild(button);
   });
 }
 
 async function saveUnansweredQuestion(question) {
+  const payload = {
+    action: "saveUnansweredQuestion",
+    question,
+    botName: CONFIG.botName,
+    pageUrl: window.location.href,
+    createdAt: new Date().toISOString()
+  };
+
   if (!CONFIG.googleAppsScriptUrl) {
-    const localQuestions = JSON.parse(localStorage.getItem("unansweredQuestions") || "[]");
-    localQuestions.push({ question, createdAt: new Date().toISOString() });
-    localStorage.setItem("unansweredQuestions", JSON.stringify(localQuestions));
+    const localQuestions = JSON.parse(
+      localStorage.getItem("unansweredQuestions") || "[]"
+    );
+
+    localQuestions.push(payload);
+    localStorage.setItem(
+      "unansweredQuestions",
+      JSON.stringify(localQuestions)
+    );
     return;
   }
 
@@ -88,12 +125,7 @@ async function saveUnansweredQuestion(question) {
     await fetch(CONFIG.googleAppsScriptUrl, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({
-        action: "saveUnansweredQuestion",
-        question,
-        pageUrl: window.location.href,
-        createdAt: new Date().toISOString()
-      })
+      body: JSON.stringify(payload)
     });
   } catch (error) {
     console.error("Không thể ghi nhận câu hỏi:", error);
@@ -101,7 +133,7 @@ async function saveUnansweredQuestion(question) {
 }
 
 async function handleQuestion(rawQuestion) {
-  const question = rawQuestion.trim();
+  const question = String(rawQuestion || "").trim();
   if (!question) return;
 
   addMessage(question, "user");
@@ -115,7 +147,7 @@ async function handleQuestion(rawQuestion) {
     addMessage(result.faq.answer, "bot");
   } else {
     addMessage(
-      "${CONFIG.botName} chưa tìm thấy câu trả lời phù hợp. Câu hỏi của bạn đã được ghi nhận để bộ phận phụ trách bổ sung dữ liệu FAQ.",
+      `${CONFIG.botName} chưa tìm thấy câu trả lời phù hợp. Câu hỏi của bạn đã được ghi nhận để bộ phận phụ trách bổ sung dữ liệu FAQ.`,
       "bot"
     );
     await saveUnansweredQuestion(question);
@@ -130,5 +162,9 @@ chatForm.addEventListener("submit", event => {
   handleQuestion(questionInput.value);
 });
 
-addMessage("Xin chào! Mình là ${CONFIG.botName}. Bạn cần hỗ trợ thông tin gì?", "bot");
+addMessage(
+  `Xin chào! Mình là ${CONFIG.botName}, trợ lý hỗ trợ thông tin. Bạn cần mình hỗ trợ nội dung gì?`,
+  "bot"
+);
+
 renderSuggestions();
