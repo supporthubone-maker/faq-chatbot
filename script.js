@@ -1,3 +1,4 @@
+console.log("HuBI version 2026-07-31-01");
 const CONFIG = {
   botName: "HuBI",
 
