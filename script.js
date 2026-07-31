@@ -141,16 +141,21 @@ function saveQuestionLocally(payload) {
 async function saveUnansweredQuestion(question) {
   const payload = {
     action: "saveUnansweredQuestion",
-    question,
+    question: String(question || "").trim(),
     botName: CONFIG.botName,
     pageUrl: window.location.href,
     createdAt: new Date().toISOString()
   };
 
+  if (!payload.question) {
+    return {
+      success: false,
+      message: "Câu hỏi đang trống"
+    };
+  }
+
   if (!CONFIG.googleAppsScriptUrl) {
-    console.warn(
-      "Chưa cấu hình Google Apps Script URL. Câu hỏi được lưu tạm trên trình duyệt."
-    );
+    console.warn("Chưa cấu hình Google Apps Script URL.");
 
     saveQuestionLocally(payload);
 
@@ -161,38 +166,29 @@ async function saveUnansweredQuestion(question) {
   }
 
   try {
-    console.log(
-      "Đang gửi câu hỏi lên Google Apps Script:",
-      question
+    const body = new Blob(
+      [JSON.stringify(payload)],
+      {
+        type: "text/plain;charset=UTF-8"
+      }
     );
 
-    await fetch(CONFIG.googleAppsScriptUrl, {
-      method: "POST",
-      mode: "no-cors",
-      headers: {
-        "Content-Type": "text/plain;charset=utf-8"
-      },
-      body: JSON.stringify(payload)
-    });
-
-    /*
-      Với mode: "no-cors", trình duyệt không cho đọc
-      response.json(), response.status hoặc response.ok.
-      Tuy nhiên yêu cầu POST vẫn được gửi đến Apps Script.
-    */
-
-    console.log(
-      "Đã gửi yêu cầu ghi nhận câu hỏi lên Google Apps Script."
+    const sent = navigator.sendBeacon(
+      CONFIG.googleAppsScriptUrl,
+      body
     );
+
+    console.log("Kết quả gửi Beacon:", sent, payload);
+
+    if (!sent) {
+      throw new Error("Trình duyệt không gửi được yêu cầu");
+    }
 
     return {
       success: true
     };
   } catch (error) {
-    console.error(
-      "Không thể ghi nhận câu hỏi:",
-      error
-    );
+    console.error("Không thể ghi nhận câu hỏi:", error);
 
     saveQuestionLocally(payload);
 
