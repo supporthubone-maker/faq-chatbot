@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Chatbot FAQ hỗ trợ giải đáp câu hỏi thường gặp" />
+  <title>FAQ Assistant</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="page-shell">
+    <section class="chat-card">
+      <header class="chat-header">
+        <div class="bot-avatar">FAQ</div>
+        <div>
+          <h1>Trợ lý hỗ trợ</h1>
+          <p><span class="status-dot"></span> Sẵn sàng giải đáp</p>
+        </div>
+      </header>
+
+      <div id="messages" class="messages" aria-live="polite"></div>
+
+      <div id="suggestions" class="suggestions"></div>
+
+      <form id="chatForm" class="chat-form">
+        <label class="sr-only" for="questionInput">Nhập câu hỏi</label>
+        <input
+          id="questionInput"
+          name="question"
+          type="text"
+          maxlength="500"
+          autocomplete="off"
+          placeholder="Nhập câu hỏi của bạn..."
+          required
+        />
+        <button type="submit">Gửi</button>
+      </form>
+
+      <p class="note">Câu hỏi chưa có đáp án có thể được ghi nhận để bổ sung dữ liệu FAQ.</p>
+    </section>
+  </main>
+
+  <script src="faq-data.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
